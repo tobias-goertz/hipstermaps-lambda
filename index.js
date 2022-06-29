@@ -1,4 +1,5 @@
 var conf = require('dotenv').config();
+process.env.FONTCONFIG_PATH='/var/task/fonts';
 
 const apiBaseUrl = 'https://api.mapbox.com';
 const sharp = require('sharp');
@@ -13,27 +14,37 @@ const awsSecret = process.env['AWS_SECRET'];
 const awsBucket = process.env['AWS_BUCKET'];
 
 const formatSizes = {
-  'DIN': {
+  '2:3': {
     image: {
-      w: 6500,
-      h: 8400
+      w: 5400,
+      h: 6900
     },
     poster: {
-      w: 7016,
-      h: 9933,
-      offset: 258,
+      w: 5906,
+      h: 8858,
+      offset: 253,
+      fontSize1: 350,
+      fontSize2: 250,
+      fontSize3: 190,
+      stroke: 30,
+      letterSpacing: 75,
       frame: 'frame_din.jpg'
     }
   },
-  '3:2': {
+  '3:4': {
     image: {
-      w: 6500,
-      h: 9750
+      w: 3243,
+      h: 3580,
     },
     poster: {
-      w: 7016,
-      h: 10524,
-      offset: 258,
+      w: 3543,
+      h: 4724,
+      offset: 150,
+      fontSize1: 250,
+      fontSize2: 150,
+      fontSize3: 120,
+      stroke: 20,
+      letterSpacing: 50,
       frame: 'frame_3_2.jpg'
     }
   }
@@ -47,6 +58,7 @@ exports.handler = (event, context, callback) => {
   if (!event.mapStyle) returnWithError('No Mapbox Map Id', callback);
   if (!event.formatSize) returnWithError('No Format Size', callback);
   if (!event.title) returnWithError('No Title', callback);
+  if (!event.zoom) returnWithError('No Zoom', callback);
 
   var formatSize = formatSizes[event.formatSize];
   if (!formatSize) returnWithError('Invalid Format Size', callback);
@@ -58,7 +70,7 @@ exports.handler = (event, context, callback) => {
   });
 
   var params = {
-    zoom: 14,
+    zoom: event.zoom,
     scale: 1,
     center: {
       x: parseFloat(event.lon),
@@ -70,7 +82,7 @@ exports.handler = (event, context, callback) => {
     quality: 255,
     tileSize: 1024,
     getTile: function(z, x, y, cb) {
-      var tileUrl = apiBaseUrl + '/styles/v1/shigawire/' + event.mapStyle +'/tiles/512/' + z + '/' + x + '/' + y + '@2x?access_token=' + apiKey;
+      var tileUrl = apiBaseUrl + '/styles/v1/' + event.mapStyle +'/tiles/512/' + z + '/' + x + '/' + y + '@2x?access_token=' + apiKey;
       axios.get(tileUrl, { responseType: 'arraybuffer' }).then(function(response) {
         return cb(null, response.data, response.header);
       })
@@ -82,7 +94,7 @@ exports.handler = (event, context, callback) => {
     if (err) throw err;
     console.timeEnd('buildMap');
 
-    var posterBuffer = await buildPoster(formatSize, image, event.title);
+    var posterBuffer = await buildPoster(formatSize, image, event.title, event.subtitle, event.coords);
     console.time('upload');
     s3Bucket.upload({
       Bucket: awsBucket,
@@ -96,21 +108,48 @@ exports.handler = (event, context, callback) => {
   });
 };
 
-async function buildPoster(formatSize, rawMap, text) {
+async function buildPoster(formatSize, rawMap, title, subtitle, coords) {
   console.time('buildPoster');
-  var frame = new Buffer(`
-  <svg viewBox="0 0 ${formatSize.poster.w} ${formatSize.poster.h}" xmlns="http://www.w3.org/2000/svg">
+  var frame = Buffer.from(`
+    <svg viewBox="0 0 ${formatSize.poster.w} ${formatSize.poster.h}" xmlns="http://www.w3.org/2000/svg">
+    <style>
+    </style>
+    <rect width="100%" height="100%" fill="#f4f4f4"/>
     <rect x="0" y="0" width="${formatSize.poster.w}" height="${formatSize.poster.h}" fill="#fff" />
     <text
       x="${formatSize.poster.w / 2}"
-      y="${formatSize.poster.h - 700}"
-      font-size="300"
-      fill="#000"
+      y="${formatSize.poster.h * 0.865}"
+      font-size="${formatSize.poster.fontSize1}"
+      fill="#2d6886"
+      font-weight="bold"
       text-anchor="middle"
-      font-family="Arial">
-      ${text}
+      font-family="OpenSans"
+      letter-spacing="${formatSize.poster.letterSpacing}">
+      ${title}
+    </text>
+    <line x1="${(formatSize.poster.w /2) * 0.66}" y1="${formatSize.poster.h * 0.88}" x2="${(formatSize.poster.w /2) * 1.33}" y2="${formatSize.poster.h * 0.88}" style="stroke:rgb(0,0,0);stroke-width:${formatSize.poster.stroke}"></line>
+    <text
+      x="${formatSize.poster.w / 2}"
+      y="${formatSize.poster.h * 0.92}"
+      font-size="${formatSize.poster.fontSize2}"
+      fill="#2d6886"
+      text-anchor="middle"
+      font-family="OpenSans"
+      letter-spacing="${formatSize.poster.letterSpacing}">
+      ${subtitle}
+    </text>
+    <text
+      x="${formatSize.poster.w / 2}"
+      y="${formatSize.poster.h * 0.96}"
+      font-size="${formatSize.poster.fontSize3}"
+      font-style="italic"
+      fill="#2d6886"
+      text-anchor="middle"
+      font-family="OpenSans">
+      ${coords}
     </text>
   </svg>`);
+
   //
   // return await sharp(frame)
   // var final = await sharp({
