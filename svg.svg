@@ -1,0 +1,12 @@
+<svg viewBox="0 0 ${formatSize.poster.w} ${formatSize.poster.h}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${formatSize.poster.w}" height="${formatSize.poster.h}" fill="#fff" />
+    <text
+      x="${formatSize.poster.w / 2}"
+      y="${formatSize.poster.h - 700}"
+      font-size="300"
+      fill="#000"
+      text-anchor="middle"
+      font-family="Arial">
+      ${text}
+    </text>
+  </svg>

@@ -44,7 +44,7 @@ exports.handler = (event, context, callback) => {
   if (!awsKey) returnWithError('No AWS Key', callback);
   if (!awsSecret) returnWithError('No AWS Secret', callback);
   if (!awsBucket) returnWithError('No AWS Bucket', callback);
-  if (!event.mapId) returnWithError('No Mapbox Map Id', callback);
+  if (!event.mapStyle) returnWithError('No Mapbox Map Id', callback);
   if (!event.formatSize) returnWithError('No Format Size', callback);
   if (!event.title) returnWithError('No Title', callback);
 
@@ -67,11 +67,12 @@ exports.handler = (event, context, callback) => {
       h: formatSize.image.h
     },
     format: 'png',
+    quality: 255,
     tileSize: 1024,
     getTile: function(z, x, y, cb) {
-      var tileUrl = apiBaseUrl + '/styles/v1/shigawire/' + event.mapId +'/tiles/512/' + z + '/' + x + '/' + y + '@2x?access_token=' + apiKey;
+      var tileUrl = apiBaseUrl + '/styles/v1/shigawire/' + event.mapStyle +'/tiles/512/' + z + '/' + x + '/' + y + '@2x?access_token=' + apiKey;
       axios.get(tileUrl, { responseType: 'arraybuffer' }).then(function(response) {
-        cb(null, response.data, response.header);
+        return cb(null, response.data, response.header);
       })
     },
   };
@@ -97,40 +98,40 @@ exports.handler = (event, context, callback) => {
 
 async function buildPoster(formatSize, rawMap, text) {
   console.time('buildPoster');
-  // var frame = new Buffer(`
-  // <svg>
-  //   <rect x="0" y="0" width="${formatSize.poster.w}" height="${formatSize.poster.h}" fill="#fff" />
-  //   <text
-  //     x="${formatSize.poster.w / 2}"
-  //     y="${formatSize.poster.h - 700}"
-  //     font-size="300"
-  //     fill="#000"
-  //     text-anchor="middle"
-  //     font-family="Arial">
-  //     ${text}
-  //   </text>
-  // </svg>`);
-  // //
-  // // return await sharp(frame)
-  // // var final = await sharp({
-  // //   create: {
-  // //     width: formatSize.poster.w,
-  // //     height: formatSize.poster.h,
-  // //     channels: 4,
-  // //     background: { r: 255, g: 255, b: 255, alpha: 255 }
-  // //   }
-  // // })
-  // var final =
-  // await sharp(frame)
-  // .png()
-  // .overlayWith(rawMap, { top: formatSize.poster.offset, left: formatSize.poster.offset })
-  // .toBuffer();
-
+  var frame = new Buffer(`
+  <svg viewBox="0 0 ${formatSize.poster.w} ${formatSize.poster.h}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="${formatSize.poster.w}" height="${formatSize.poster.h}" fill="#fff" />
+    <text
+      x="${formatSize.poster.w / 2}"
+      y="${formatSize.poster.h - 700}"
+      font-size="300"
+      fill="#000"
+      text-anchor="middle"
+      font-family="Arial">
+      ${text}
+    </text>
+  </svg>`);
+  //
+  // return await sharp(frame)
+  // var final = await sharp({
+  //   create: {
+  //     width: formatSize.poster.w,
+  //     height: formatSize.poster.h,
+  //     channels: 4,
+  //     background: { r: 255, g: 255, b: 255, alpha: 255 }
+  //   }
+  // })
   var final =
-    await sharp(`templates/${formatSize.poster.frame}`)
-    .png()
-    .overlayWith(rawMap, { top: formatSize.poster.offset, left: formatSize.poster.offset })
-    .toBuffer();
+  await sharp(frame)
+  .png()
+  .composite([{ input: rawMap, top: formatSize.poster.offset, left: formatSize.poster.offset }])
+  .toBuffer();
+
+  // var final =
+  //   await sharp(`templates/${formatSize.poster.frame}`)
+  //   .png()
+  //   .composite([{ input: rawMap, top: formatSize.poster.offset, left: formatSize.poster.offset }])
+  //   .toBuffer();
 
   console.timeEnd('buildPoster');
   return final;
