@@ -1,10 +1,10 @@
-# #!/bin/bash
+#!/bin/bash
+# Build Lambda deployment package using AWS Lambda Node.js 20 image
 docker run \
- --rm \
- -t \
- --entrypoint "/bin/bash" \
+  --rm \
+  -t \
+  --platform linux/amd64 \
+  --entrypoint "/bin/bash" \
   -v "$PWD":/var/task \
-  lambci/lambda:build-nodejs12.x -c -l \
-   "rm -rf node_modules && npm install"
-
-#docker run --rm -v "$PWD":/var/task lambci/lambda:build-nodejs8.10
+  public.ecr.aws/lambda/nodejs:20 -c \
+  "rm -rf node_modules && npm install --production"

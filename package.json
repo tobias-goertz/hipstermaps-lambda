@@ -1,7 +1,8 @@
 {
   "name": "hipstermaps-lambda",
-  "version": "1.0.0",
-  "description": "AWS Lambda function",
+  "version": "2.0.0",
+  "description": "AWS Lambda function for generating HipsterMaps posters",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,17 +11,10 @@
     "type": "git",
     "url": "git+https://github.com/Shigawire/hipstermaps-lambda.git"
   },
-  "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Shigawire/hipstermaps-lambda/issues"
-  },
-  "homepage": "https://github.com/Shigawire/hipstermaps-lambda#readme",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.500.0",
     "@mapbox/abaculus": "^3.1.0",
-    "aws-sdk": "^2.1164.0",
-    "axios": "^0.27.2",
-    "sharp": "^0.30.7",
-    "dotenv": "^16.0.1"
+    "sharp": "^0.33.0"
   }
 }
